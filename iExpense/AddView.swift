@@ -10,7 +10,7 @@ import SwiftUI
 struct AddView: View {
     @Environment(\.dismiss) var dismiss
     
-    @State private var name = ""
+    @State private var name = "Name of Expense"
     @State private var amount = 0.0
     @State private var type = "Personal"
     
@@ -29,12 +29,11 @@ struct AddView: View {
             .pickerStyle(.segmented)
             
             Form {
-                TextField("Name of Expense", text: $name)
-                
                 TextField("Amount", value: $amount, format: .currency(code: Locale.current.currency?.identifier ?? "USD"))
                     .keyboardType(.decimalPad)
             }
-            .navigationTitle("Add New Expense")
+            .navigationTitle($name)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") {
@@ -55,6 +54,7 @@ struct AddView: View {
                 }
             }
         }
+        .navigationBarBackButtonHidden()
     }
 }
 

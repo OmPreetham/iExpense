@@ -77,6 +77,8 @@ struct ContentView: View {
             return expenses.items.filter { $0.type == selectedType }
         }
     }
+    
+    @State private var path = [Int]()
 
     
     var body: some View {
@@ -111,17 +113,17 @@ struct ContentView: View {
                 })
             }
             .navigationTitle("iExpense")
-            .toolbar(content: {
+            .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     EditButton()
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Add Expense", systemImage: "plus") {
-                        showingAddNewExpense = true
+                    NavigationLink(destination: AddView(expenses: expenses)) {
+                        Image(systemName: "plus")
                     }
                 }
-            })
+            }
             .sheet(isPresented: $showingAddNewExpense, content: {
                 AddView(expenses: expenses)
             })
