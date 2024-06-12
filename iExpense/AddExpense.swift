@@ -1,5 +1,5 @@
 //
-//  AddView.swift
+//  AddExpense.swift
 //  iExpense
 //
 //  Created by Om Preetham Bandi on 5/21/24.
@@ -7,57 +7,55 @@
 
 import SwiftUI
 
-struct AddView: View {
+struct AddExpense: View {
     @Environment(\.dismiss) var dismiss
-    
-    @State private var name = "Name of Expense"
+    @Environment(\.modelContext) var modelContext
+        
+    @State private var name = ""
     @State private var amount = 0.0
     @State private var type = "Personal"
+    @State private var types = ["Personal", "Business"]
     
-    let types = ["Personal", "Business"]
-    
-    var expenses: Expenses
     
     var body: some View {
         NavigationStack {
-            Picker("Select Expense Type", selection: $type) {
+            Picker("Select Type", selection: $type) {
                 ForEach(types, id: \.self) {
                     Text($0)
                 }
             }
             .padding()
-            .pickerStyle(.segmented)
-            
+            .pickerStyle(.palette)
+
+
             Form {
-                TextField("Amount", value: $amount, format: .currency(code: Locale.current.currency?.identifier ?? "USD"))
+                TextField("Enter Name", text: $name)
+                
+                TextField("Enter Amount", value: $amount, format: .currency(code: Locale.current.currency?.identifier ?? "USD"))
                     .keyboardType(.decimalPad)
             }
-            .navigationTitle($name)
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Add New Expense")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
                 }
+                
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") {
-                        if name.isEmpty || amount.isZero {
-                            dismiss()
-                            return
-                        }
+                        let expense = Expense(name: name, amount: amount, type: type)
                         
-                        let items = ExpenseItem(name: name, amount: amount, type: type)
-                        expenses.items.append(items)
+                        modelContext.insert(expense)
                         dismiss()
                     }
+                    .disabled(name.isEmpty || amount.isEqual(to: 0.0))
                 }
             }
         }
-        .navigationBarBackButtonHidden()
     }
 }
 
 #Preview {
-    AddView(expenses: Expenses())
+    AddExpense()
 }

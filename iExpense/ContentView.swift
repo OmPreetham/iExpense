@@ -5,37 +5,8 @@
 //  Created by Om Preetham Bandi on 5/21/24.
 //
 
-import Observation
+import SwiftData
 import SwiftUI
-
-struct ExpenseItem: Identifiable, Codable {
-    var id = UUID()
-    let name: String
-    let amount: Double
-    let type: String
-}
-
-@Observable
-class Expenses {
-    var items = [ExpenseItem]() {
-        didSet {
-            if let encoded = try? JSONEncoder().encode(items) {
-                UserDefaults.standard.set(encoded, forKey: "Items")
-            }
-        }
-    }
-    
-    init() {
-        if let savedItems = UserDefaults.standard.data(forKey: "Items") {
-            if let decodedItems = try? JSONDecoder().decode([ExpenseItem].self, from: savedItems) {
-                items = decodedItems
-                return
-            }
-        }
-
-        items = []
-    }
-}
 
 struct ExpensesModifier: ViewModifier {
     let amount: Double
@@ -62,77 +33,58 @@ extension View {
 }
 
 struct ContentView: View {
-    @State private var expenses = Expenses()
+    @Environment(\.modelContext) var modelContext
+    @Query var expenses: [Expense]
     
-    @State private var showingAddNewExpense = false
+    @State private var showingAddExpense = false
     
-    @State private var selectedType = "All"
+    @State private var sortOrder: [SortDescriptor<Expense>] = []
     
-    let types = ["All", "Personal", "Business"]
-    
-    var filteredExpenses: [ExpenseItem] {
-        if selectedType == "All" {
-            return expenses.items
-        } else {
-            return expenses.items.filter { $0.type == selectedType }
-        }
-    }
-    
-    @State private var path = [Int]()
+    @State private var filterType = "All"
+    @State private var types = ["All", "Personal", "Business"]
 
-    
+
     var body: some View {
         NavigationStack {
-            Picker("Select Expense Type", selection: $selectedType) {
+            Picker("Filter", selection: $filterType) {
                 ForEach(types, id: \.self) {
                     Text($0)
                 }
             }
-            .pickerStyle(.segmented)
             .padding()
+            .pickerStyle(.palette)
             
-            List {
-                ForEach(filteredExpenses) { item in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(item.name)
-                                .font(.headline)
-                            Text(item.type)
-                        }
-                        
-                        Spacer()
-                        
-                        Text(item.amount, format: .currency(code: Locale.current.currency?.identifier ?? "USD"))
-                    }
-                    .padding()
-                    .applyExpensesModifier(amount: item.amount)
-                    .cornerRadius(10.0)
-                }
-                .onDelete(perform: { indexSet in
-                    removeItems(at: indexSet)
-                })
-            }
+            ExpensesView(type: filterType, sortOrder: sortOrder)
+            
             .navigationTitle("iExpense")
+            .listStyle(.plain)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    EditButton()
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: {
+                        showingAddExpense.toggle()
+                    }) {
+                        Label("New Expense", systemImage: "plus")
+                    }
                 }
                 
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(destination: AddView(expenses: expenses)) {
-                        Image(systemName: "plus")
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        Picker("Sort", selection: $sortOrder) {
+                            Text("Sort by Name")
+                                .tag([SortDescriptor(\Expense.name), SortDescriptor(\Expense.amount)])
+                            
+                            Text("Sort by Amount")
+                                .tag([SortDescriptor(\Expense.amount), SortDescriptor(\Expense.name)])
+                        }
+                    } label: {
+                        Label("Sort", systemImage: "arrow.up.arrow.down")
                     }
                 }
             }
-            .sheet(isPresented: $showingAddNewExpense, content: {
-                AddView(expenses: expenses)
-            })
-            .listStyle(.plain)
+            .sheet(isPresented: $showingAddExpense) {
+                AddExpense()
+            }
         }
-    }
-    
-    func removeItems(at offsets: IndexSet) {
-        expenses.items.remove(atOffsets: offsets)
     }
 }
 
